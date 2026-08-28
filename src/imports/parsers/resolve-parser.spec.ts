@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MonobankParser } from './monobank.parser';
 import { PrivatParser } from './privat.parser';
-import { resolveStatementParser } from './resolve-parser';
+import { parserForBank, resolveStatementParser } from './resolve-parser';
 import { RevolutParser } from './revolut.parser';
 
 const fixtures = join(__dirname, '../../test-data');
@@ -27,5 +27,11 @@ describe('resolveStatementParser', () => {
     expect(() =>
       resolveStatementParser(Buffer.from('not a statement')),
     ).toThrow('Unsupported bank statement format');
+  });
+
+  it('returns the parser for a bank', () => {
+    expect(parserForBank('REVOLUT')).toBeInstanceOf(RevolutParser);
+    expect(parserForBank('MONOBANK')).toBeInstanceOf(MonobankParser);
+    expect(parserForBank('PRIVAT')).toBeInstanceOf(PrivatParser);
   });
 });

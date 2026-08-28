@@ -383,6 +383,13 @@
                   "kind": "scalar"
                 }
               },
+              "transactionHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "type": {
                 "nullable": false,
                 "type": {
@@ -475,6 +482,9 @@
                 },
                 "merchant": {
                   "column": "merchant"
+                },
+                "transactionHash": {
+                  "column": "transactionHash"
                 },
                 "type": {
                   "column": "type"
@@ -721,6 +731,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "transactionHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "type": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -823,7 +838,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "transactionHash"
+                  ]
+                }
+              ]
             }
           },
           "valueSet": {
@@ -857,7 +878,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "eff3b984b6e1cdb7e6cc241ce9014d03fe265420111af14bc75e4d4e5c98f6d2"
+    "storageHash": "69467157d1053ab0b1280db3cbccb5d95c8a3699e42bba3fade17b4024b20ab9"
   },
   "execution": {
     "executionHash": "eee50d9d154a9ad42da65bce51f9a230654e5807ccad88ae8debaf1d4a40affb",

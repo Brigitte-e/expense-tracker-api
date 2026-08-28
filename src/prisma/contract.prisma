@@ -56,14 +56,15 @@ model Import {
 }
 
 model Transaction {
-  id          Uuid              @id @default(uuid())
-  date        TimestamptzString
-  description String
-  merchant    String?
-  amount      Numeric(19, 4)
-  currency    String
-  type        TransactionType
-  createdAt   TimestamptzString @default(now())
+  id              Uuid              @id @default(uuid())
+  date            TimestamptzString
+  description     String
+  merchant        String?
+  amount          Numeric(19, 4)
+  currency        String
+  type            TransactionType
+  transactionHash String            @unique
+  createdAt       TimestamptzString @default(now())
 
   categoryId Uuid
   accountId  Uuid

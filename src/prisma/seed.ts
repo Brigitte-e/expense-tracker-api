@@ -22,7 +22,24 @@ async function seed() {
     }
   }
 
-  console.log(`Seeded ${CATEGORY_NAMES.length} categories`);
+  const accounts = [
+    { name: 'Revolut', bank: 'REVOLUT' as const, currency: 'EUR' },
+    { name: 'Monobank', bank: 'MONOBANK' as const, currency: 'UAH' },
+    { name: 'PrivatBank', bank: 'PRIVAT' as const, currency: 'UAH' },
+  ];
+
+  for (const account of accounts) {
+    const existing = await db.orm.public.Account.where({
+      name: account.name,
+    }).first();
+    if (!existing) {
+      await db.orm.public.Account.create(account);
+    }
+  }
+
+  console.log(
+    `Seeded ${CATEGORY_NAMES.length} categories and ${accounts.length} accounts`,
+  );
   await db.close();
 }
 
