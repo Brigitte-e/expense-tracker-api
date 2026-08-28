@@ -35,15 +35,17 @@ export class ImportsService {
   ) {}
 
   async parseAndCategorize(
+    userId: string,
     file: Buffer,
     parser?: StatementParser,
   ): Promise<CategorizedTransaction[]> {
     const resolved = parser ?? resolveStatementParser(file);
     const transactions = await resolved.parse(file);
-    return this.categoriesService.categorizeAll(transactions);
+    return this.categoriesService.categorizeAll(userId, transactions);
   }
 
   async importStatement(input: {
+    userId: string;
     file: Buffer;
     fileName: string;
     bank: Bank;
@@ -51,6 +53,7 @@ export class ImportsService {
   }): Promise<ImportResult> {
     const account = await this.prisma.client.orm.public.Account.where({
       id: input.accountId,
+      userId: input.userId,
     }).first();
 
     if (!account) {
@@ -74,11 +77,17 @@ export class ImportsService {
       fileName: input.fileName,
       bank: input.bank,
       status: 'PROCESSING',
+      userId: input.userId,
     });
 
     try {
-      const transactions = await this.parseAndCategorize(input.file, parser);
+      const transactions = await this.parseAndCategorize(
+        input.userId,
+        input.file,
+        parser,
+      );
       const result = await this.transactionsService.createFromImport({
+        userId: input.userId,
         accountId: input.accountId,
         importId: importRecord.id,
         transactions,

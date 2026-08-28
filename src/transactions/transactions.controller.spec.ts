@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
 
+const user = { id: 'user-1', email: 'a@b.c' };
 const transaction = {
   id: '11111111-1111-4111-8111-111111111111',
   date: '2026-08-20T10:00:00.000Z',
@@ -41,13 +42,19 @@ describe('TransactionsController', () => {
 
   it('lists transactions', async () => {
     transactionsService.findAll.mockResolvedValue([transaction]);
-    await expect(controller.findAll({})).resolves.toEqual([transaction]);
+    await expect(controller.findAll(user, {})).resolves.toEqual([
+      transaction,
+    ]);
+    expect(transactionsService.findAll).toHaveBeenCalledWith(user.id, {});
   });
 
   it('forwards query filters', async () => {
     transactionsService.findAll.mockResolvedValue([]);
-    await controller.findAll({ category: 'GROCERIES', type: 'EXPENSE' });
-    expect(transactionsService.findAll).toHaveBeenCalledWith({
+    await controller.findAll(user, {
+      category: 'GROCERIES',
+      type: 'EXPENSE',
+    });
+    expect(transactionsService.findAll).toHaveBeenCalledWith(user.id, {
       category: 'GROCERIES',
       type: 'EXPENSE',
     });
@@ -55,8 +62,12 @@ describe('TransactionsController', () => {
 
   it('returns one transaction', async () => {
     transactionsService.findOne.mockResolvedValue(transaction);
-    await expect(controller.findOne(transaction.id)).resolves.toEqual(
+    await expect(controller.findOne(user, transaction.id)).resolves.toEqual(
       transaction,
+    );
+    expect(transactionsService.findOne).toHaveBeenCalledWith(
+      user.id,
+      transaction.id,
     );
   });
 
@@ -65,17 +76,25 @@ describe('TransactionsController', () => {
     transactionsService.update.mockResolvedValue(updated);
 
     await expect(
-      controller.update(transaction.id, { category: 'SUBSCRIPTIONS' }),
+      controller.update(user, transaction.id, { category: 'SUBSCRIPTIONS' }),
     ).resolves.toEqual(updated);
-    expect(transactionsService.update).toHaveBeenCalledWith(transaction.id, {
-      category: 'SUBSCRIPTIONS',
-    });
+    expect(transactionsService.update).toHaveBeenCalledWith(
+      user.id,
+      transaction.id,
+      {
+        category: 'SUBSCRIPTIONS',
+      },
+    );
   });
 
   it('deletes a transaction', async () => {
     transactionsService.remove.mockResolvedValue(transaction);
-    await expect(controller.remove(transaction.id)).resolves.toEqual(
+    await expect(controller.remove(user, transaction.id)).resolves.toEqual(
       transaction,
+    );
+    expect(transactionsService.remove).toHaveBeenCalledWith(
+      user.id,
+      transaction.id,
     );
   });
 });

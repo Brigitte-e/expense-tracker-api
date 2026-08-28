@@ -9,6 +9,8 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
+import type { AuthUser } from '../auth/auth-user';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { CategoriesService } from './categories.service';
 import type {
   CategoryRuleResponse,
@@ -21,22 +23,24 @@ export class CategoryRulesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  findAll(): Promise<CategoryRuleResponse[]> {
-    return this.categoriesService.findAllRules();
+  findAll(@CurrentUser() user: AuthUser): Promise<CategoryRuleResponse[]> {
+    return this.categoriesService.findAllRules(user.id);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(
+    @CurrentUser() user: AuthUser,
     @Body(ParseCreateCategoryRulePipe) dto: CreateCategoryRuleDto,
   ): Promise<CategoryRuleResponse> {
-    return this.categoriesService.createRule(dto);
+    return this.categoriesService.createRule(user.id, dto);
   }
 
   @Delete(':id')
   remove(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CategoryRuleResponse> {
-    return this.categoriesService.removeRule(id);
+    return this.categoriesService.removeRule(user.id, id);
   }
 }

@@ -6,6 +6,8 @@ import { TransactionsService } from '../transactions/transactions.service';
 import { ImportsService } from './imports.service';
 import { RevolutParser } from './parsers/revolut.parser';
 
+const userId = 'user-1';
+
 function mockModel() {
   const model = {
     where: jest.fn(),
@@ -29,7 +31,7 @@ describe('ImportsService', () => {
     createFromImport: jest.fn(),
   };
   const categoriesService = {
-    categorizeAll: jest.fn((transactions: unknown[]) =>
+    categorizeAll: jest.fn((id: string, transactions: unknown[]) =>
       transactions.map((transaction) => ({
         ...(transaction as object),
         category: 'GROCERIES',
@@ -61,6 +63,7 @@ describe('ImportsService', () => {
 
   it('parses and categorizes a Revolut statement', async () => {
     const result = await service.parseAndCategorize(
+      userId,
       Buffer.from(csv),
       new RevolutParser(),
     );
@@ -71,6 +74,10 @@ describe('ImportsService', () => {
       amount: 45.32,
       category: 'GROCERIES',
     });
+    expect(categoriesService.categorizeAll).toHaveBeenCalledWith(
+      userId,
+      expect.any(Array),
+    );
   });
 
   it('saves categorized transactions for a matching account', async () => {
@@ -86,6 +93,7 @@ describe('ImportsService', () => {
     Import.update.mockResolvedValue({});
 
     const result = await service.importStatement({
+      userId,
       file: Buffer.from(csv),
       fileName: 'statement.csv',
       bank: 'REVOLUT',
@@ -101,8 +109,16 @@ describe('ImportsService', () => {
       skipped: 0,
       total: 1,
     });
+    expect(Account.where).toHaveBeenCalledWith({
+      id: 'account-1',
+      userId,
+    });
+    expect(Import.create).toHaveBeenCalledWith(
+      expect.objectContaining({ userId }),
+    );
     expect(transactionsService.createFromImport).toHaveBeenCalledWith(
       expect.objectContaining({
+        userId,
         accountId: 'account-1',
         importId: 'import-1',
       }),
@@ -114,6 +130,7 @@ describe('ImportsService', () => {
 
     await expect(
       service.importStatement({
+        userId,
         file: Buffer.from(csv),
         fileName: 'statement.csv',
         bank: 'REVOLUT',
@@ -127,6 +144,7 @@ describe('ImportsService', () => {
 
     await expect(
       service.importStatement({
+        userId,
         file: Buffer.from('not a statement'),
         fileName: 'statement.csv',
         bank: 'REVOLUT',

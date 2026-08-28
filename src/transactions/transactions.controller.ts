@@ -8,6 +8,8 @@ import {
   Patch,
   Query,
 } from '@nestjs/common';
+import type { AuthUser } from '../auth/auth-user';
+import { CurrentUser } from '../auth/current-user.decorator';
 import type {
   Transaction,
   TransactionFilters,
@@ -22,26 +24,34 @@ export class TransactionsController {
 
   @Get()
   findAll(
+    @CurrentUser() user: AuthUser,
     @Query(ParseTransactionFiltersPipe) filters: TransactionFilters,
   ): Promise<Transaction[]> {
-    return this.transactionsService.findAll(filters);
+    return this.transactionsService.findAll(user.id, filters);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Transaction> {
-    return this.transactionsService.findOne(id);
+  findOne(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Transaction> {
+    return this.transactionsService.findOne(user.id, id);
   }
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTransactionDto,
   ): Promise<Transaction> {
-    return this.transactionsService.update(id, dto);
+    return this.transactionsService.update(user.id, id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string): Promise<Transaction> {
-    return this.transactionsService.remove(id);
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<Transaction> {
+    return this.transactionsService.remove(user.id, id);
   }
 }

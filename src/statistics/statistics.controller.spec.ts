@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StatisticsController } from './statistics.controller';
 import { StatisticsService } from './statistics.service';
 
+const user = { id: 'user-1', email: 'a@b.c' };
+
 describe('StatisticsController', () => {
   let controller: StatisticsController;
   const statisticsService = {
@@ -27,18 +29,21 @@ describe('StatisticsController', () => {
   it('returns the summary', async () => {
     const summary = { income: 3200, expenses: 2150, balance: 1050 };
     statisticsService.summary.mockResolvedValue(summary);
-    await expect(controller.summary()).resolves.toEqual(summary);
+    await expect(controller.summary(user)).resolves.toEqual(summary);
+    expect(statisticsService.summary).toHaveBeenCalledWith(user.id);
   });
 
   it('returns totals by category', async () => {
     const rows = [{ category: 'GROCERIES', amount: 450 }];
     statisticsService.byCategory.mockResolvedValue(rows);
-    await expect(controller.byCategory()).resolves.toEqual(rows);
+    await expect(controller.byCategory(user)).resolves.toEqual(rows);
+    expect(statisticsService.byCategory).toHaveBeenCalledWith(user.id);
   });
 
   it('returns monthly totals', async () => {
     const rows = [{ month: '2026-06', income: 3000, expenses: 1900 }];
     statisticsService.monthly.mockResolvedValue(rows);
-    await expect(controller.monthly()).resolves.toEqual(rows);
+    await expect(controller.monthly(user)).resolves.toEqual(rows);
+    expect(statisticsService.monthly).toHaveBeenCalledWith(user.id);
   });
 });

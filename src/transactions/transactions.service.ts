@@ -39,6 +39,7 @@ type TransactionInsert = {
   currency: string;
   type: 'INCOME' | 'EXPENSE';
   transactionHash: string;
+  userId: string;
   categoryId: string;
   accountId: string;
   importId: string;
@@ -48,8 +49,11 @@ type TransactionInsert = {
 export class TransactionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(filters: TransactionFilters = {}): Promise<Transaction[]> {
-    const query = await this.filteredQuery(filters);
+  async findAll(
+    userId: string,
+    filters: TransactionFilters = {},
+  ): Promise<Transaction[]> {
+    const query = await this.filteredQuery(userId, filters);
     if (!query) {
       return [];
     }
@@ -71,8 +75,11 @@ export class TransactionsService {
     );
   }
 
-  async findOne(id: string): Promise<Transaction> {
-    const row = await this.prisma.client.orm.public.Transaction.where({ id })
+  async findOne(userId: string, id: string): Promise<Transaction> {
+    const row = await this.prisma.client.orm.public.Transaction.where({
+      id,
+      userId,
+    })
       .include('category')
       .first();
 
@@ -83,15 +90,20 @@ export class TransactionsService {
     return this.toResponse(row);
   }
 
-  async update(id: string, dto: UpdateTransactionDto): Promise<Transaction> {
-    await this.findOne(id);
+  async update(
+    userId: string,
+    id: string,
+    dto: UpdateTransactionDto,
+  ): Promise<Transaction> {
+    await this.findOne(userId, id);
 
     if (dto.category === undefined) {
-      return this.findOne(id);
+      return this.findOne(userId, id);
     }
 
     const category = await this.prisma.client.orm.public.Category.where({
       name: dto.category,
+      userId,
     }).first();
 
     if (!category) {
@@ -102,21 +114,24 @@ export class TransactionsService {
       categoryId: category.id,
     });
 
-    return this.findOne(id);
+    return this.findOne(userId, id);
   }
 
-  async remove(id: string): Promise<Transaction> {
-    const existing = await this.findOne(id);
+  async remove(userId: string, id: string): Promise<Transaction> {
+    const existing = await this.findOne(userId, id);
     await this.prisma.client.orm.public.Transaction.where({ id }).delete();
     return existing;
   }
 
   async createFromImport(input: {
+    userId: string;
     accountId: string;
     importId: string;
     transactions: CategorizedTransaction[];
   }): Promise<{ imported: number; skipped: number }> {
-    const categories = await this.prisma.client.orm.public.Category.all();
+    const categories = await this.prisma.client.orm.public.Category.where({
+      userId: input.userId,
+    }).all();
     const categoryIds = new Map(
       categories.map((category) => [category.name, category.id]),
     );
@@ -171,6 +186,7 @@ export class TransactionsService {
             type: transaction.type,
             transactionHash: transaction.transactionHash,
             categoryId,
+            userId: input.userId,
             accountId: input.accountId,
             importId: input.importId,
           };
@@ -184,12 +200,15 @@ export class TransactionsService {
     };
   }
 
-  private async filteredQuery(filters: TransactionFilters) {
-    let query = this.prisma.client.orm.public.Transaction.include('category');
+  private async filteredQuery(userId: string, filters: TransactionFilters) {
+    let query = this.prisma.client.orm.public.Transaction.where({
+      userId,
+    }).include('category');
 
     if (filters.category) {
       const category = await this.prisma.client.orm.public.Category.where({
         name: filters.category,
+        userId,
       }).first();
 
       if (!category) {

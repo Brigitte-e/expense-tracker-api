@@ -31,40 +31,49 @@ type CategoryRuleRow = {
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async categorize(transaction: NormalizedTransaction): Promise<Category> {
-    const rules = await this.loadRules();
+  async categorize(
+    userId: string,
+    transaction: NormalizedTransaction,
+  ): Promise<Category> {
+    const rules = await this.loadRules(userId);
     return matchCategory(transaction.description, rules);
   }
 
   async categorizeAll(
+    userId: string,
     transactions: NormalizedTransaction[],
   ): Promise<CategorizedTransaction[]> {
-    const rules = await this.loadRules();
+    const rules = await this.loadRules(userId);
     return transactions.map((transaction) => ({
       ...transaction,
       category: matchCategory(transaction.description, rules),
     }));
   }
 
-  async findAllRules(): Promise<CategoryRuleResponse[]> {
-    const rows =
-      await this.prisma.client.orm.public.CategoryRule.include(
-        'category',
-      ).all();
+  async findAllRules(userId: string): Promise<CategoryRuleResponse[]> {
+    const rows = await this.prisma.client.orm.public.CategoryRule.where({
+      userId,
+    })
+      .include('category')
+      .all();
 
     return rows
       .map((row) => this.toResponse(row))
       .sort((left, right) => right.priority - left.priority);
   }
 
-  async createRule(dto: CreateCategoryRuleDto): Promise<CategoryRuleResponse> {
-    const category = await this.resolveCategory(dto.categoryId);
+  async createRule(
+    userId: string,
+    dto: CreateCategoryRuleDto,
+  ): Promise<CategoryRuleResponse> {
+    const category = await this.resolveCategory(userId, dto.categoryId);
     if (!category) {
       throw new BadRequestException(`Unknown category: ${dto.categoryId}`);
     }
 
     const pattern = dto.pattern.toUpperCase();
     const existing = await this.prisma.client.orm.public.CategoryRule.where({
+      userId,
       pattern,
     }).first();
 
@@ -76,6 +85,7 @@ export class CategoriesService {
       pattern,
       categoryId: category.id,
       priority: dto.priority,
+      userId,
     });
 
     return {
@@ -87,8 +97,11 @@ export class CategoriesService {
     };
   }
 
-  async removeRule(id: string): Promise<CategoryRuleResponse> {
-    const row = await this.prisma.client.orm.public.CategoryRule.where({ id })
+  async removeRule(userId: string, id: string): Promise<CategoryRuleResponse> {
+    const row = await this.prisma.client.orm.public.CategoryRule.where({
+      id,
+      userId,
+    })
       .include('category')
       .first();
 
@@ -101,11 +114,12 @@ export class CategoriesService {
     return response;
   }
 
-  private async loadRules(): Promise<CategoryRuleMatch[]> {
-    const rows =
-      await this.prisma.client.orm.public.CategoryRule.include(
-        'category',
-      ).all();
+  private async loadRules(userId: string): Promise<CategoryRuleMatch[]> {
+    const rows = await this.prisma.client.orm.public.CategoryRule.where({
+      userId,
+    })
+      .include('category')
+      .all();
 
     return rows
       .flatMap((row) => {
@@ -125,10 +139,11 @@ export class CategoriesService {
       .sort((left, right) => right.priority - left.priority);
   }
 
-  private async resolveCategory(categoryId: string) {
+  private async resolveCategory(userId: string, categoryId: string) {
     if (UUID.test(categoryId)) {
       const byId = await this.prisma.client.orm.public.Category.where({
         id: categoryId,
+        userId,
       }).first();
       if (byId) {
         return byId;
@@ -137,6 +152,7 @@ export class CategoriesService {
 
     return this.prisma.client.orm.public.Category.where({
       name: categoryId.toUpperCase(),
+      userId,
     }).first();
   }
 

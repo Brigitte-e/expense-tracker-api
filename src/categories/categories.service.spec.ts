@@ -7,6 +7,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { CategoriesService } from './categories.service';
 
+const userId = 'user-1';
+
 function mockModel() {
   const model = {
     where: jest.fn(),
@@ -67,7 +69,7 @@ describe('CategoriesService', () => {
     CategoryRule.all.mockResolvedValue([starbucksRule]);
 
     await expect(
-      service.categorizeAll([
+      service.categorizeAll(userId, [
         {
           date: new Date('2026-08-20T10:00:00.000Z'),
           description: 'STARBUCKS RAMBLA',
@@ -93,6 +95,7 @@ describe('CategoriesService', () => {
         category: 'OTHER',
       }),
     ]);
+    expect(CategoryRule.where).toHaveBeenCalledWith({ userId });
   });
 
   it('creates a rule from a category name', async () => {
@@ -106,7 +109,7 @@ describe('CategoriesService', () => {
     });
 
     await expect(
-      service.createRule({
+      service.createRule(userId, {
         pattern: 'starbucks',
         categoryId: 'restaurants',
         priority: 0,
@@ -123,6 +126,7 @@ describe('CategoriesService', () => {
       pattern: 'STARBUCKS',
       categoryId: restaurants.id,
       priority: 0,
+      userId,
     });
   });
 
@@ -133,20 +137,24 @@ describe('CategoriesService', () => {
       id: starbucksRule.id,
       pattern: 'STARBUCKS',
       categoryId: restaurants.id,
-      priority: 0,
+      priority: 5,
     });
 
-    await service.createRule({
+    await service.createRule(userId, {
       pattern: 'STARBUCKS',
       categoryId: restaurants.id,
       priority: 5,
     });
 
-    expect(Category.where).toHaveBeenCalledWith({ id: restaurants.id });
+    expect(Category.where).toHaveBeenCalledWith({
+      id: restaurants.id,
+      userId,
+    });
     expect(CategoryRule.create).toHaveBeenCalledWith({
       pattern: 'STARBUCKS',
       categoryId: restaurants.id,
       priority: 5,
+      userId,
     });
   });
 
@@ -154,7 +162,7 @@ describe('CategoriesService', () => {
     Category.first.mockResolvedValue(null);
 
     await expect(
-      service.createRule({
+      service.createRule(userId, {
         pattern: 'STARBUCKS',
         categoryId: 'coffee',
         priority: 0,
@@ -167,7 +175,7 @@ describe('CategoriesService', () => {
     CategoryRule.first.mockResolvedValue(starbucksRule);
 
     await expect(
-      service.createRule({
+      service.createRule(userId, {
         pattern: 'STARBUCKS',
         categoryId: 'RESTAURANTS',
         priority: 0,
@@ -187,7 +195,7 @@ describe('CategoriesService', () => {
       },
     ]);
 
-    await expect(service.findAllRules()).resolves.toEqual([
+    await expect(service.findAllRules(userId)).resolves.toEqual([
       expect.objectContaining({ pattern: 'UBER EATS', priority: 10 }),
       expect.objectContaining({ pattern: 'STARBUCKS', priority: 0 }),
     ]);
@@ -196,20 +204,22 @@ describe('CategoriesService', () => {
   it('deletes a rule', async () => {
     CategoryRule.first.mockResolvedValue(starbucksRule);
 
-    await expect(service.removeRule(starbucksRule.id)).resolves.toEqual({
-      id: starbucksRule.id,
-      pattern: 'STARBUCKS',
-      categoryId: restaurants.id,
-      category: 'RESTAURANTS',
-      priority: 0,
-    });
+    await expect(service.removeRule(userId, starbucksRule.id)).resolves.toEqual(
+      {
+        id: starbucksRule.id,
+        pattern: 'STARBUCKS',
+        categoryId: restaurants.id,
+        category: 'RESTAURANTS',
+        priority: 0,
+      },
+    );
     expect(CategoryRule.delete).toHaveBeenCalled();
   });
 
   it('rejects deleting a missing rule', async () => {
     CategoryRule.first.mockResolvedValue(null);
 
-    await expect(service.removeRule('missing')).rejects.toBeInstanceOf(
+    await expect(service.removeRule(userId, 'missing')).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });

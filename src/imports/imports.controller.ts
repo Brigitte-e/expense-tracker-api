@@ -11,6 +11,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { AuthUser } from '../auth/auth-user';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { ImportsService, type ImportResult } from './imports.service';
 import { ParseBankPipe } from './parse-bank.pipe';
 import {
@@ -36,6 +38,7 @@ export class ImportsController {
     FileInterceptor('file', { limits: { fileSize: MAX_STATEMENT_BYTES } }),
   )
   importStatement(
+    @CurrentUser() user: AuthUser,
     @UploadedFile(
       new ParseFilePipe({
         fileIsRequired: true,
@@ -50,6 +53,7 @@ export class ImportsController {
     @Body('accountId', ParseUUIDPipe) accountId: string,
   ): Promise<ImportResult> {
     return this.importsService.importStatement({
+      userId: user.id,
       file: file.buffer,
       fileName: file.originalname,
       bank,

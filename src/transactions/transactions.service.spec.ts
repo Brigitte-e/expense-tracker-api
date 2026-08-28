@@ -3,6 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsService } from './transactions.service';
 
+const userId = 'user-1';
+
 function mockModel() {
   const model = {
     where: jest.fn(),
@@ -73,7 +75,7 @@ describe('TransactionsService', () => {
   it('maps listed transactions to API responses', async () => {
     Transaction.all.mockResolvedValue([row]);
 
-    await expect(service.findAll()).resolves.toEqual([
+    await expect(service.findAll(userId)).resolves.toEqual([
       {
         id: row.id,
         date: row.date,
@@ -88,6 +90,7 @@ describe('TransactionsService', () => {
         createdAt: row.createdAt,
       },
     ]);
+    expect(Transaction.where).toHaveBeenCalledWith({ userId });
   });
 
   it('filters by category, type, and date range', async () => {
@@ -105,14 +108,17 @@ describe('TransactionsService', () => {
       return Transaction;
     });
 
-    await service.findAll({
+    await service.findAll(userId, {
       category: 'GROCERIES',
       type: 'EXPENSE',
       from: '2026-08-01',
       to: '2026-08-31',
     });
 
-    expect(Category.where).toHaveBeenCalledWith({ name: 'GROCERIES' });
+    expect(Category.where).toHaveBeenCalledWith({
+      name: 'GROCERIES',
+      userId,
+    });
     expect(Transaction.where).toHaveBeenCalledWith({
       categoryId: 'cat-groceries',
     });
@@ -123,9 +129,9 @@ describe('TransactionsService', () => {
 
   it('returns nothing when the category is missing from the database', async () => {
     Category.first.mockResolvedValue(null);
-    await expect(service.findAll({ category: 'GROCERIES' })).resolves.toEqual(
-      [],
-    );
+    await expect(
+      service.findAll(userId, { category: 'GROCERIES' }),
+    ).resolves.toEqual([]);
     expect(Transaction.all).not.toHaveBeenCalled();
   });
 
@@ -139,7 +145,7 @@ describe('TransactionsService', () => {
       return Transaction;
     });
 
-    await service.findAll({
+    await service.findAll(userId, {
       accountId: row.accountId,
       minAmount: 10,
       maxAmount: 50,
@@ -170,7 +176,7 @@ describe('TransactionsService', () => {
       },
     ]);
 
-    await expect(service.findAll({ search: 'lidl' })).resolves.toEqual([
+    await expect(service.findAll(userId, { search: 'lidl' })).resolves.toEqual([
       expect.objectContaining({ id: 'lidl-1', description: 'LIDL BARCELONA' }),
       expect.objectContaining({
         id: 'merchant-1',
@@ -181,7 +187,7 @@ describe('TransactionsService', () => {
 
   it('throws when a transaction is missing', async () => {
     Transaction.first.mockResolvedValue(null);
-    await expect(service.findOne(row.id)).rejects.toBeInstanceOf(
+    await expect(service.findOne(userId, row.id)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -198,8 +204,12 @@ describe('TransactionsService', () => {
     Transaction.update.mockResolvedValue({});
 
     await expect(
-      service.update(row.id, { category: 'SUBSCRIPTIONS' }),
+      service.update(userId, row.id, { category: 'SUBSCRIPTIONS' }),
     ).resolves.toMatchObject({ category: 'SUBSCRIPTIONS' });
+    expect(Category.where).toHaveBeenCalledWith({
+      name: 'SUBSCRIPTIONS',
+      userId,
+    });
     expect(Transaction.update).toHaveBeenCalledWith({
       categoryId: 'cat-subscriptions',
     });
@@ -210,7 +220,7 @@ describe('TransactionsService', () => {
     Category.first.mockResolvedValue(null);
 
     await expect(
-      service.update(row.id, { category: 'NOT_A_CATEGORY' }),
+      service.update(userId, row.id, { category: 'NOT_A_CATEGORY' }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -231,18 +241,23 @@ describe('TransactionsService', () => {
     };
 
     const first = await service.createFromImport({
+      userId,
       accountId: 'revolut-account',
       importId: 'import-1',
       transactions: [transaction],
     });
     expect(first.imported).toBe(1);
     expect(Transaction.createAll).toHaveBeenCalledTimes(1);
+    expect(Transaction.createAll.mock.calls[0][0][0]).toMatchObject({
+      userId,
+    });
 
     const hash = Transaction.createAll.mock.calls[0][0][0]
       .transactionHash as string;
     Transaction.all.mockResolvedValue([{ transactionHash: hash }]);
 
     const second = await service.createFromImport({
+      userId,
       accountId: 'revolut-account',
       importId: 'import-2',
       transactions: [transaction],

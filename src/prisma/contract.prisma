@@ -21,6 +21,21 @@ enum TransactionType {
   EXPENSE
 }
 
+model User {
+  id           Uuid              @id @default(uuid())
+  email        String            @unique
+  passwordHash String
+  createdAt    TimestamptzString @default(now())
+
+  accounts      Account[]
+  categories    Category[]
+  categoryRules CategoryRule[]
+  imports       Import[]
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
 model Account {
   id        Uuid              @id @default(uuid())
   name      String
@@ -28,30 +43,39 @@ model Account {
   currency  String
   createdAt TimestamptzString @default(now())
 
+  userId Uuid
+  user     User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
 
+  @@index([userId])
   @@map("accounts")
 }
 
 model Category {
   id        Uuid              @id @default(uuid())
-  name      String            @unique
+  name      String
   createdAt TimestamptzString @default(now())
 
+  userId Uuid
+  user         User           @relation(fields: [userId], references: [id])
   transactions Transaction[]
   rules        CategoryRule[]
 
+  @@unique([userId, name])
   @@map("categories")
 }
 
 model CategoryRule {
-  id         Uuid     @id @default(uuid())
-  pattern    String   @unique
-  priority   Int      @default(0)
+  id       Uuid   @id @default(uuid())
+  pattern  String
+  priority Int    @default(0)
 
+  userId     Uuid
   categoryId Uuid
+  user       User     @relation(fields: [userId], references: [id])
   category   Category @relation(fields: [categoryId], references: [id])
 
+  @@unique([userId, pattern])
   @@map("category_rules")
 }
 
@@ -62,8 +86,11 @@ model Import {
   status    ImportStatus
   createdAt TimestamptzString @default(now())
 
+  userId Uuid
+  user         User          @relation(fields: [userId], references: [id])
   transactions Transaction[]
 
+  @@index([userId])
   @@map("imports")
 }
 
@@ -78,14 +105,17 @@ model Transaction {
   transactionHash String            @unique
   createdAt       TimestamptzString @default(now())
 
+  userId     Uuid
   categoryId Uuid
   accountId  Uuid
   importId   Uuid?
 
+  user     User     @relation(fields: [userId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
   account  Account  @relation(fields: [accountId], references: [id])
   import   Import?  @relation(fields: [importId], references: [id])
 
+  @@index([userId, date])
   @@index([accountId, date])
   @@check(expression: "amount > 0", name: "transaction_amount_positive")
   @@map("transactions")

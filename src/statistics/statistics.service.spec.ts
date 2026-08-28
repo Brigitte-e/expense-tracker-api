@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { StatisticsService } from './statistics.service';
 
+const userId = 'user-1';
+
 function mockModel() {
   const model = {
     where: jest.fn(),
@@ -51,10 +53,18 @@ describe('StatisticsService', () => {
       .mockResolvedValueOnce({ total: '3200.0000' })
       .mockResolvedValueOnce({ total: '2150.0000' });
 
-    await expect(service.summary()).resolves.toEqual({
+    await expect(service.summary(userId)).resolves.toEqual({
       income: 3200,
       expenses: 2150,
       balance: 1050,
+    });
+    expect(Transaction.where).toHaveBeenCalledWith({
+      userId,
+      type: 'INCOME',
+    });
+    expect(Transaction.where).toHaveBeenCalledWith({
+      userId,
+      type: 'EXPENSE',
     });
   });
 
@@ -70,11 +80,12 @@ describe('StatisticsService', () => {
       { id: 'cat-shopping', name: 'SHOPPING' },
     ]);
 
-    await expect(service.byCategory()).resolves.toEqual([
+    await expect(service.byCategory(userId)).resolves.toEqual([
       { category: 'GROCERIES', amount: 450 },
       { category: 'SHOPPING', amount: 310 },
       { category: 'RESTAURANTS', amount: 220 },
     ]);
+    expect(Category.where).toHaveBeenCalledWith({ userId });
   });
 
   it('groups income and expenses by month', async () => {
@@ -93,9 +104,10 @@ describe('StatisticsService', () => {
       },
     ]);
 
-    await expect(service.monthly()).resolves.toEqual([
+    await expect(service.monthly(userId)).resolves.toEqual([
       { month: '2026-06', income: 3000, expenses: 1900 },
       { month: '2026-07', income: 3100, expenses: 2200 },
     ]);
+    expect(Transaction.where).toHaveBeenCalledWith({ userId });
   });
 });

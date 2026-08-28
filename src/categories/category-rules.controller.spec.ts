@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CategoriesService } from './categories.service';
 import { CategoryRulesController } from './category-rules.controller';
 
+const user = { id: 'user-1', email: 'a@b.c' };
 const rule = {
   id: '11111111-1111-4111-8111-111111111111',
   pattern: 'STARBUCKS',
@@ -34,7 +35,8 @@ describe('CategoryRulesController', () => {
 
   it('lists rules', async () => {
     categoriesService.findAllRules.mockResolvedValue([rule]);
-    await expect(controller.findAll()).resolves.toEqual([rule]);
+    await expect(controller.findAll(user)).resolves.toEqual([rule]);
+    expect(categoriesService.findAllRules).toHaveBeenCalledWith(user.id);
   });
 
   it('creates a rule', async () => {
@@ -45,12 +47,13 @@ describe('CategoryRulesController', () => {
       priority: 0,
     };
 
-    await expect(controller.create(dto)).resolves.toEqual(rule);
-    expect(categoriesService.createRule).toHaveBeenCalledWith(dto);
+    await expect(controller.create(user, dto)).resolves.toEqual(rule);
+    expect(categoriesService.createRule).toHaveBeenCalledWith(user.id, dto);
   });
 
   it('deletes a rule', async () => {
     categoriesService.removeRule.mockResolvedValue(rule);
-    await expect(controller.remove(rule.id)).resolves.toEqual(rule);
+    await expect(controller.remove(user, rule.id)).resolves.toEqual(rule);
+    expect(categoriesService.removeRule).toHaveBeenCalledWith(user.id, rule.id);
   });
 });

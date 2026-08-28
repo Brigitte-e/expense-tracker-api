@@ -10,10 +10,10 @@ import type {
 export class StatisticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async summary(): Promise<StatisticsSummary> {
+  async summary(userId: string): Promise<StatisticsSummary> {
     const [income, expenses] = await Promise.all([
-      this.sumByType('INCOME'),
-      this.sumByType('EXPENSE'),
+      this.sumByType(userId, 'INCOME'),
+      this.sumByType(userId, 'EXPENSE'),
     ]);
 
     return {
@@ -23,14 +23,17 @@ export class StatisticsService {
     };
   }
 
-  async byCategory(): Promise<CategoryStatistic[]> {
+  async byCategory(userId: string): Promise<CategoryStatistic[]> {
     const [grouped, categories] = await Promise.all([
-      this.prisma.client.orm.public.Transaction.where({ type: 'EXPENSE' })
+      this.prisma.client.orm.public.Transaction.where({
+        userId,
+        type: 'EXPENSE',
+      })
         .groupBy('categoryId')
         .aggregate((aggregate) => ({
           amount: aggregate.sum('amount'),
         })),
-      this.prisma.client.orm.public.Category.all(),
+      this.prisma.client.orm.public.Category.where({ userId }).all(),
     ]);
 
     const names = new Map(
@@ -46,12 +49,12 @@ export class StatisticsService {
       .sort((left, right) => right.amount - left.amount);
   }
 
-  async monthly(): Promise<MonthlyStatistic[]> {
-    const rows = await this.prisma.client.orm.public.Transaction.select(
-      'date',
-      'type',
-      'amount',
-    ).all();
+  async monthly(userId: string): Promise<MonthlyStatistic[]> {
+    const rows = await this.prisma.client.orm.public.Transaction.where({
+      userId,
+    })
+      .select('date', 'type', 'amount')
+      .all();
 
     const byMonth = new Map<string, { income: number; expenses: number }>();
 
@@ -78,8 +81,12 @@ export class StatisticsService {
       }));
   }
 
-  private async sumByType(type: 'INCOME' | 'EXPENSE'): Promise<number> {
+  private async sumByType(
+    userId: string,
+    type: 'INCOME' | 'EXPENSE',
+  ): Promise<number> {
     const result = await this.prisma.client.orm.public.Transaction.where({
+      userId,
       type,
     }).aggregate((aggregate) => ({
       total: aggregate.sum('amount'),
