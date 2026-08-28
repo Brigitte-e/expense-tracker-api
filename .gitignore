@@ -26,3 +26,5 @@ lerna-debug.log*
 .tmp
 .prisma-composer/
 .alchemy/
+.tmp-npm-cache/
+.pnpm-store/

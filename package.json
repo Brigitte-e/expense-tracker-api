@@ -18,7 +18,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "contract:emit": "prisma contract emit",
+    "db:init": "prisma db init",
+    "db:seed": "tsx src/prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -26,9 +29,12 @@
     "@nestjs/platform-express": "^12.0.1",
     "@prisma/composer": "0.16.0",
     "@prisma/composer-prisma-cloud": "0.16.0",
+    "@prisma/orm-postgres": "8.0.0-rc.8",
     "alchemy": "2.0.0-beta.74",
     "csv-parse": "^7.0.2",
+    "dotenv": "^17.4.2",
     "effect": "4.0.0-rc.112",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "xlsx": "^0.18.5"
@@ -41,6 +47,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^7.0.0",
     "jest": "^30.0.0",
     "oxlint": "^1.58.0",
@@ -52,6 +59,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.23.12",
     "typescript": "^6.0.2"
   },
   "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be",

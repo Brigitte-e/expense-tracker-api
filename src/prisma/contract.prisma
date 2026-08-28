@@ -1,0 +1,79 @@
+// use prisma-next
+
+enum Bank {
+  @@type("pg/text@1")
+  REVOLUT
+  MONOBANK
+  PRIVAT
+}
+
+enum ImportStatus {
+  @@type("pg/text@1")
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TransactionType {
+  @@type("pg/text@1")
+  INCOME
+  EXPENSE
+}
+
+model Account {
+  id        Uuid              @id @default(uuid())
+  name      String
+  bank      Bank
+  currency  String
+  createdAt TimestamptzString @default(now())
+
+  transactions Transaction[]
+
+  @@map("accounts")
+}
+
+model Category {
+  id        Uuid              @id @default(uuid())
+  name      String            @unique
+  createdAt TimestamptzString @default(now())
+
+  transactions Transaction[]
+
+  @@map("categories")
+}
+
+model Import {
+  id        Uuid              @id @default(uuid())
+  fileName  String
+  bank      Bank
+  status    ImportStatus
+  createdAt TimestamptzString @default(now())
+
+  transactions Transaction[]
+
+  @@map("imports")
+}
+
+model Transaction {
+  id          Uuid              @id @default(uuid())
+  date        TimestamptzString
+  description String
+  merchant    String?
+  amount      Numeric(19, 4)
+  currency    String
+  type        TransactionType
+  createdAt   TimestamptzString @default(now())
+
+  categoryId Uuid
+  accountId  Uuid
+  importId   Uuid?
+
+  category Category @relation(fields: [categoryId], references: [id])
+  account  Account  @relation(fields: [accountId], references: [id])
+  import   Import?  @relation(fields: [importId], references: [id])
+
+  @@index([accountId, date])
+  @@check(expression: "amount > 0", name: "transaction_amount_positive")
+  @@map("transactions")
+}
