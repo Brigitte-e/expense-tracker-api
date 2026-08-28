@@ -12,6 +12,10 @@
       "model": "Category",
       "namespace": "public"
     },
+    "category_rules": {
+      "model": "CategoryRule",
+      "namespace": "public"
+    },
     "imports": {
       "model": "Import",
       "namespace": "public"
@@ -186,6 +190,21 @@
               }
             },
             "relations": {
+              "rules": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "categoryId"
+                  ]
+                },
+                "to": {
+                  "model": "CategoryRule",
+                  "namespace": "public"
+                }
+              },
               "transactions": {
                 "cardinality": "1:N",
                 "on": {
@@ -216,6 +235,73 @@
               },
               "namespaceId": "public",
               "table": "categories"
+            }
+          },
+          "CategoryRule": {
+            "fields": {
+              "categoryId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "pattern": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "priority": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "category": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "categoryId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Category",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "categoryId": {
+                  "column": "categoryId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "pattern": {
+                  "column": "pattern"
+                },
+                "priority": {
+                  "column": "priority"
+                }
+              },
+              "namespaceId": "public",
+              "table": "category_rules"
             }
           },
           "Import": {
@@ -594,6 +680,74 @@
                 }
               ]
             },
+            "category_rules": {
+              "columns": {
+                "categoryId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "pattern": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "priority": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "categoryId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "category_rules"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "categories"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "categoryId"
+                  ],
+                  "name": "category_rules_categoryId_idx_15c304f2",
+                  "prefix": "category_rules_categoryId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "pattern"
+                  ]
+                }
+              ]
+            },
             "imports": {
               "checks": [
                 {
@@ -878,10 +1032,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "69467157d1053ab0b1280db3cbccb5d95c8a3699e42bba3fade17b4024b20ab9"
+    "storageHash": "d13a7c62f53da67af3fca6da5308ce6bef244d4037b62d09a38fa8a28012825a"
   },
   "execution": {
-    "executionHash": "eee50d9d154a9ad42da65bce51f9a230654e5807ccad88ae8debaf1d4a40affb",
+    "executionHash": "42ad70b82170516a10e55f124fbcfb469b8e862121574d2f67fef2bd4656a7c2",
     "mutations": {
       "defaults": [
         {
@@ -904,6 +1058,17 @@
             "column": "id",
             "namespace": "public",
             "table": "categories"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "category_rules"
           }
         },
         {

@@ -39,8 +39,20 @@ model Category {
   createdAt TimestamptzString @default(now())
 
   transactions Transaction[]
+  rules        CategoryRule[]
 
   @@map("categories")
+}
+
+model CategoryRule {
+  id         Uuid     @id @default(uuid())
+  pattern    String   @unique
+  priority   Int      @default(0)
+
+  categoryId Uuid
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@map("category_rules")
 }
 
 model Import {

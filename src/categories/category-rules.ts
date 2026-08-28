@@ -21,43 +21,54 @@ export function isCategory(value: unknown): value is Category {
   );
 }
 
-export interface CategoryRule {
-  keywords: string[];
+export interface CategoryRuleMatch {
+  pattern: string;
   category: Category;
+  priority: number;
 }
 
-export const categoryRules: CategoryRule[] = [
-  {
-    keywords: ['LIDL', 'MERCADONA', 'CARREFOUR'],
-    category: 'GROCERIES',
-  },
-  {
-    keywords: ['MCDONALDS', 'BURGER KING', 'KFC'],
-    category: 'RESTAURANTS',
-  },
-  {
-    keywords: ['AMAZON', 'ZARA', 'H&M'],
-    category: 'SHOPPING',
-  },
-  {
-    keywords: ['UBER', 'CABIFY', 'METRO'],
-    category: 'TRANSPORT',
-  },
-  {
-    keywords: ['SALARY'],
-    category: 'SALARY',
-  },
+export const SEED_CATEGORY_RULES: CategoryRuleMatch[] = [
+  { pattern: 'LIDL', category: 'GROCERIES', priority: 0 },
+  { pattern: 'MERCADONA', category: 'GROCERIES', priority: 0 },
+  { pattern: 'CARREFOUR', category: 'GROCERIES', priority: 0 },
+  { pattern: 'MCDONALDS', category: 'RESTAURANTS', priority: 0 },
+  { pattern: 'BURGER KING', category: 'RESTAURANTS', priority: 0 },
+  { pattern: 'KFC', category: 'RESTAURANTS', priority: 0 },
+  { pattern: 'AMAZON', category: 'SHOPPING', priority: 0 },
+  { pattern: 'ZARA', category: 'SHOPPING', priority: 0 },
+  { pattern: 'H&M', category: 'SHOPPING', priority: 0 },
+  { pattern: 'UBER', category: 'TRANSPORT', priority: 0 },
+  { pattern: 'CABIFY', category: 'TRANSPORT', priority: 0 },
+  { pattern: 'METRO', category: 'TRANSPORT', priority: 0 },
+  { pattern: 'SALARY', category: 'SALARY', priority: 0 },
+  { pattern: 'NETFLIX', category: 'SUBSCRIPTIONS', priority: 0 },
 ];
 
-export function matchCategory(description: string): Category {
+export interface CreateCategoryRuleDto {
+  pattern: string;
+  categoryId: string;
+  priority: number;
+}
+
+export interface CategoryRuleResponse {
+  id: string;
+  pattern: string;
+  categoryId: string;
+  category: string;
+  priority: number;
+}
+
+export function matchCategory(
+  description: string,
+  rules: readonly CategoryRuleMatch[],
+): Category {
   const text = description.toUpperCase();
+  const sorted = [...rules].sort(
+    (left, right) => right.priority - left.priority,
+  );
 
-  for (const rule of categoryRules) {
-    const matchesRule = rule.keywords.some((keyword) =>
-      text.includes(keyword.toUpperCase()),
-    );
-
-    if (matchesRule) {
+  for (const rule of sorted) {
+    if (text.includes(rule.pattern.toUpperCase())) {
       return rule.category;
     }
   }

@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { matchCategory } from '../categories/category-rules';
+import {
+  matchCategory,
+  SEED_CATEGORY_RULES,
+} from '../categories/category-rules';
 import { resolveStatementParser } from './parsers/resolve-parser';
 import { RevolutParser } from './parsers/revolut.parser';
 
@@ -16,7 +19,7 @@ async function parseAndCategorize(file: Buffer) {
   const transactions = await parser.parse(file);
   return transactions.map((transaction) => ({
     ...transaction,
-    category: matchCategory(transaction.description),
+    category: matchCategory(transaction.description, SEED_CATEGORY_RULES),
   }));
 }
 
@@ -26,7 +29,7 @@ describe('parser + categorization pipeline', () => {
     const transactions = await parser.parse(Buffer.from(csv));
     const result = transactions.map((transaction) => ({
       ...transaction,
-      category: matchCategory(transaction.description),
+      category: matchCategory(transaction.description, SEED_CATEGORY_RULES),
     }));
 
     expect(result).toHaveLength(4);
