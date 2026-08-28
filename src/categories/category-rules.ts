@@ -1,15 +1,25 @@
-export type Category =
-  | 'GROCERIES'
-  | 'RESTAURANTS'
-  | 'TRANSPORT'
-  | 'SHOPPING'
-  | 'ENTERTAINMENT'
-  | 'HEALTH'
-  | 'HOUSING'
-  | 'SUBSCRIPTIONS'
-  | 'SALARY'
-  | 'TRANSFER'
-  | 'OTHER';
+export const CATEGORIES = [
+  'GROCERIES',
+  'RESTAURANTS',
+  'TRANSPORT',
+  'SHOPPING',
+  'ENTERTAINMENT',
+  'HEALTH',
+  'HOUSING',
+  'SUBSCRIPTIONS',
+  'SALARY',
+  'TRANSFER',
+  'OTHER',
+] as const;
+
+export type Category = (typeof CATEGORIES)[number];
+
+export function isCategory(value: unknown): value is Category {
+  return (
+    typeof value === 'string' &&
+    (CATEGORIES as readonly string[]).includes(value)
+  );
+}
 
 export interface CategoryRule {
   keywords: string[];

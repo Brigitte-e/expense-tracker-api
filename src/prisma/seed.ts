@@ -1,21 +1,8 @@
+import { CATEGORIES } from '../categories/category-rules';
 import { db } from './db';
 
-const CATEGORY_NAMES = [
-  'GROCERIES',
-  'RESTAURANTS',
-  'TRANSPORT',
-  'SHOPPING',
-  'ENTERTAINMENT',
-  'HEALTH',
-  'HOUSING',
-  'SUBSCRIPTIONS',
-  'SALARY',
-  'TRANSFER',
-  'OTHER',
-] as const;
-
 async function seed() {
-  for (const name of CATEGORY_NAMES) {
+  for (const name of CATEGORIES) {
     const existing = await db.orm.public.Category.where({ name }).first();
     if (!existing) {
       await db.orm.public.Category.create({ name });
@@ -38,7 +25,7 @@ async function seed() {
   }
 
   console.log(
-    `Seeded ${CATEGORY_NAMES.length} categories and ${accounts.length} accounts`,
+    `Seeded ${CATEGORIES.length} categories and ${accounts.length} accounts`,
   );
   await db.close();
 }

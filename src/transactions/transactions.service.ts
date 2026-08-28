@@ -8,8 +8,13 @@ import { CategorizedTransaction } from '../imports/types/categorized-transaction
 import { PrismaService } from '../prisma/prisma.service';
 import type {
   Transaction,
+  TransactionFilters,
   UpdateTransactionDto,
 } from './interfaces/transaction.interface';
+import {
+  startOfNextUtcDay,
+  startOfUtcDay,
+} from './parse-transaction-filters.pipe';
 import { transactionHash } from './transaction-hash';
 
 type TransactionRow = {
@@ -43,14 +48,27 @@ type TransactionInsert = {
 export class TransactionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Transaction[]> {
-    const rows = await this.prisma.client.orm.public.Transaction.include(
-      'category',
-    )
+  async findAll(filters: TransactionFilters = {}): Promise<Transaction[]> {
+    const query = await this.filteredQuery(filters);
+    if (!query) {
+      return [];
+    }
+
+    const rows = await query
       .orderBy((transaction) => transaction.date.desc())
       .all();
 
-    return rows.map((row) => this.toResponse(row));
+    const transactions = rows.map((row) => this.toResponse(row));
+    if (!filters.search) {
+      return transactions;
+    }
+
+    const search = filters.search.toLowerCase();
+    return transactions.filter(
+      (transaction) =>
+        transaction.description.toLowerCase().includes(search) ||
+        transaction.merchant?.toLowerCase().includes(search),
+    );
   }
 
   async findOne(id: string): Promise<Transaction> {
@@ -164,6 +182,52 @@ export class TransactionsService {
       imported: toInsert.length,
       skipped: input.transactions.length - toInsert.length,
     };
+  }
+
+  private async filteredQuery(filters: TransactionFilters) {
+    let query = this.prisma.client.orm.public.Transaction.include('category');
+
+    if (filters.category) {
+      const category = await this.prisma.client.orm.public.Category.where({
+        name: filters.category,
+      }).first();
+
+      if (!category) {
+        return null;
+      }
+
+      query = query.where({ categoryId: category.id });
+    }
+
+    if (filters.type) {
+      query = query.where({ type: filters.type });
+    }
+
+    if (filters.accountId) {
+      query = query.where({ accountId: filters.accountId });
+    }
+
+    if (filters.from) {
+      const from = startOfUtcDay(filters.from);
+      query = query.where((transaction) => transaction.date.gte(from));
+    }
+
+    if (filters.to) {
+      const to = startOfNextUtcDay(filters.to);
+      query = query.where((transaction) => transaction.date.lt(to));
+    }
+
+    if (filters.minAmount !== undefined) {
+      const minAmount = toNumericAmount(filters.minAmount);
+      query = query.where((transaction) => transaction.amount.gte(minAmount));
+    }
+
+    if (filters.maxAmount !== undefined) {
+      const maxAmount = toNumericAmount(filters.maxAmount);
+      query = query.where((transaction) => transaction.amount.lte(maxAmount));
+    }
+
+    return query;
   }
 
   private async insertSkippingDuplicates(

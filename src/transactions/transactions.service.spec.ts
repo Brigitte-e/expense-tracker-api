@@ -15,6 +15,7 @@ function mockModel() {
     createAll: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    groupBy: jest.fn(),
   };
   model.where.mockReturnValue(model);
   model.include.mockReturnValue(model);
@@ -86,6 +87,95 @@ describe('TransactionsService', () => {
         importId: null,
         createdAt: row.createdAt,
       },
+    ]);
+  });
+
+  it('filters by category, type, and date range', async () => {
+    Category.first.mockResolvedValue({
+      id: 'cat-groceries',
+      name: 'GROCERIES',
+    });
+    Transaction.all.mockResolvedValue([]);
+
+    const date = { gte: jest.fn(), lt: jest.fn() };
+    Transaction.where.mockImplementation((arg: unknown) => {
+      if (typeof arg === 'function') {
+        arg({ date, amount: { gte: jest.fn(), lte: jest.fn() } });
+      }
+      return Transaction;
+    });
+
+    await service.findAll({
+      category: 'GROCERIES',
+      type: 'EXPENSE',
+      from: '2026-08-01',
+      to: '2026-08-31',
+    });
+
+    expect(Category.where).toHaveBeenCalledWith({ name: 'GROCERIES' });
+    expect(Transaction.where).toHaveBeenCalledWith({
+      categoryId: 'cat-groceries',
+    });
+    expect(Transaction.where).toHaveBeenCalledWith({ type: 'EXPENSE' });
+    expect(date.gte).toHaveBeenCalledWith('2026-08-01T00:00:00.000Z');
+    expect(date.lt).toHaveBeenCalledWith('2026-09-01T00:00:00.000Z');
+  });
+
+  it('returns nothing when the category is missing from the database', async () => {
+    Category.first.mockResolvedValue(null);
+    await expect(service.findAll({ category: 'GROCERIES' })).resolves.toEqual(
+      [],
+    );
+    expect(Transaction.all).not.toHaveBeenCalled();
+  });
+
+  it('filters by account and amount range', async () => {
+    Transaction.all.mockResolvedValue([]);
+    const amount = { gte: jest.fn(), lte: jest.fn() };
+    Transaction.where.mockImplementation((arg: unknown) => {
+      if (typeof arg === 'function') {
+        arg({ date: { gte: jest.fn(), lt: jest.fn() }, amount });
+      }
+      return Transaction;
+    });
+
+    await service.findAll({
+      accountId: row.accountId,
+      minAmount: 10,
+      maxAmount: 50,
+    });
+
+    expect(Transaction.where).toHaveBeenCalledWith({
+      accountId: row.accountId,
+    });
+    expect(amount.gte).toHaveBeenCalledWith('10.0000');
+    expect(amount.lte).toHaveBeenCalledWith('50.0000');
+  });
+
+  it('searches description and merchant case-insensitively', async () => {
+    Transaction.all.mockResolvedValue([
+      row,
+      {
+        ...row,
+        id: 'lidl-1',
+        description: 'LIDL BARCELONA',
+        category: { name: 'GROCERIES' },
+      },
+      {
+        ...row,
+        id: 'merchant-1',
+        description: 'Card payment',
+        merchant: 'Lidl Online',
+        category: { name: 'GROCERIES' },
+      },
+    ]);
+
+    await expect(service.findAll({ search: 'lidl' })).resolves.toEqual([
+      expect.objectContaining({ id: 'lidl-1', description: 'LIDL BARCELONA' }),
+      expect.objectContaining({
+        id: 'merchant-1',
+        merchant: 'Lidl Online',
+      }),
     ]);
   });
 

@@ -41,7 +41,16 @@ describe('TransactionsController', () => {
 
   it('lists transactions', async () => {
     transactionsService.findAll.mockResolvedValue([transaction]);
-    await expect(controller.findAll()).resolves.toEqual([transaction]);
+    await expect(controller.findAll({})).resolves.toEqual([transaction]);
+  });
+
+  it('forwards query filters', async () => {
+    transactionsService.findAll.mockResolvedValue([]);
+    await controller.findAll({ category: 'GROCERIES', type: 'EXPENSE' });
+    expect(transactionsService.findAll).toHaveBeenCalledWith({
+      category: 'GROCERIES',
+      type: 'EXPENSE',
+    });
   });
 
   it('returns one transaction', async () => {
