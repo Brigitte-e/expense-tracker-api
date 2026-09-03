@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export const CATEGORIES = [
   'GROCERIES',
   'RESTAURANTS',
@@ -47,6 +49,17 @@ export const SEED_CATEGORY_RULES: CategoryRuleMatch[] = [
 export interface CreateCategoryRuleDto {
   pattern: string;
   categoryId: string;
+  priority: number;
+}
+
+export class CreateCategoryRuleBody implements CreateCategoryRuleDto {
+  @ApiProperty({ type: String, example: 'NETFLIX' })
+  pattern: string;
+
+  @ApiProperty({ type: String, example: 'SUBSCRIPTIONS' })
+  categoryId: string;
+
+  @ApiProperty({ type: Number, example: 0, default: 0, required: false })
   priority: number;
 }
 

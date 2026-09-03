@@ -11,6 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes, ApiProperty } from '@nestjs/swagger';
 import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ImportsService, type ImportResult } from './imports.service';
@@ -19,7 +20,18 @@ import {
   MAX_STATEMENT_BYTES,
   StatementFileValidator,
 } from './statement-file.validator';
-import type { Bank } from './types/bank';
+import { BANKS, type Bank } from './types/bank';
+
+class ImportStatementBody {
+  @ApiProperty({ type: 'string', format: 'binary' })
+  file: unknown;
+
+  @ApiProperty({ type: String, enum: BANKS, example: BANKS[0] })
+  bank: Bank;
+
+  @ApiProperty({ type: String, format: 'uuid' })
+  accountId: string;
+}
 
 type StatementUpload = {
   buffer: Buffer;
@@ -37,6 +49,8 @@ export class ImportsController {
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: MAX_STATEMENT_BYTES } }),
   )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: ImportStatementBody })
   importStatement(
     @CurrentUser() user: AuthUser,
     @UploadedFile(

@@ -1,4 +1,5 @@
-import type { Category } from '../../categories/category-rules';
+import { ApiProperty } from '@nestjs/swagger';
+import { CATEGORIES, type Category } from '../../categories/category-rules';
 
 export const TRANSACTION_TYPES = ['INCOME', 'EXPENSE'] as const;
 
@@ -29,6 +30,16 @@ export interface UpdateTransactionDto {
   category?: string;
 }
 
+export class UpdateTransactionBody implements UpdateTransactionDto {
+  @ApiProperty({
+    type: String,
+    enum: CATEGORIES,
+    example: 'GROCERIES',
+    required: false,
+  })
+  category?: string;
+}
+
 export interface TransactionFilters {
   category?: Category;
   type?: TransactionType;
@@ -39,3 +50,4 @@ export interface TransactionFilters {
   maxAmount?: number;
   search?: string;
 }
+

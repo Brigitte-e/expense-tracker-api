@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
+import { ApiBody } from '@nestjs/swagger';
 import type { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CategoriesService } from './categories.service';
@@ -16,6 +17,7 @@ import type {
   CategoryRuleResponse,
   CreateCategoryRuleDto,
 } from './category-rules';
+import { CreateCategoryRuleBody } from './category-rules';
 import { ParseCreateCategoryRulePipe } from './parse-create-category-rule.pipe';
 
 @Controller('category-rules')
@@ -29,6 +31,7 @@ export class CategoryRulesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiBody({ type: CreateCategoryRuleBody })
   create(
     @CurrentUser() user: AuthUser,
     @Body(ParseCreateCategoryRulePipe) dto: CreateCategoryRuleDto,
